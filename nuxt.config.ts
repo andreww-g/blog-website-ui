@@ -4,6 +4,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: [
     '@/assets/styles/main.scss',
+    'primevue/resources/themes/lara-light-purple/theme.css',
     'primevue/resources/primevue.css',
     'primeicons/primeicons.css',
     'primeflex/primeflex.css',
@@ -15,7 +16,14 @@ export default defineNuxtConfig({
     'nuxt-viewport',
   ],
   build: {
-    transpile: ['primevue'],
+    transpile: ['primevue']
+  },
+  watch: ['.env', '~/config/*'],
+  runtimeConfig: {
+    public: {
+      selfUrl: process.env.NUXT_SELF_URL,
+      apiUrl: process.env.NUXT_PUBLIC_API_BASE_URL,
+    },
   },
   nitro: {
     routeRules: {
