@@ -50,4 +50,5 @@ export default defineNuxtConfig({
     },
     fallbackBreakpoint: 'desktop',
   },
+  pages: true,
 })
