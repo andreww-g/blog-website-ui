@@ -69,7 +69,7 @@ onMounted(() => {
           :key="article.id"
           class="article-card"
         >
-          <NuxtLink :to="`/articles-preview/${article.slug}`">
+          <NuxtLink :to="`articles-preview/${article.slug}`">
             <div class="article-image" v-if="article.image">
               <img :src="article.image" :alt="article.title">
             </div>
