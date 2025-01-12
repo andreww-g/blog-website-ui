@@ -77,7 +77,7 @@ onMounted(() => {
               <h2>{{ article.title }}</h2>
               <p>{{ article.description }}</p>
               <div class="article-meta">
-                <span class="article-type">Article</span>
+                <span class="article-type">Publication date</span>
                 <span class="publish-date">
                   {{ new Date(article.publishedAt || article.createdAt).toLocaleDateString() }}
                 </span>

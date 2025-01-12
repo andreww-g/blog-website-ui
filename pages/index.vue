@@ -3,6 +3,10 @@ import { ref } from 'vue';
 import AuthComponent from './auth.vue';
 
 const showAuth = ref(false);
+
+const handleStartJourney = () => {
+  showAuth.value = true;
+};
 </script>
 
 <template>
@@ -10,6 +14,11 @@ const showAuth = ref(false);
     <main class="main-content">
       <h1>Develop your own blog in 2 minutes</h1>
       <p>We offer various tools for that</p>
+      <Button
+        label="Start Journey"
+        class="start-journey-btn"
+        @click="handleStartJourney"
+      />
     </main>
 
     <AuthComponent v-if="showAuth" @close="showAuth = false" />
@@ -37,11 +46,27 @@ const showAuth = ref(false);
 .main-content p {
   color: #4b0082;
   font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.start-journey-btn {
+  background-color: #6a0dad;
+  border: none;
+  font-size: 1.1rem;
+  padding: 1rem 2rem;
+}
+
+.start-journey-btn:hover {
+  background-color: #4b0082 !important;
 }
 
 @media (max-width: 768px) {
   .main-content h1 {
     font-size: 2rem;
+  }
+
+  .main-content {
+    padding: 0 1rem;
   }
 }
 </style> 

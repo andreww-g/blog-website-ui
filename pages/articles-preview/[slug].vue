@@ -1,12 +1,14 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import type { Article } from '~/types/article';
+import type { Publisher } from '~/types/publisher';
 import { restClient } from '~/openapi/rest-client';
 
 const route = useRoute();
 const slug = route.params.slug as string;
 
 const article = ref<Article | null>(null);
+const publisher = ref<Publisher | null>(null);
 const relatedArticles = ref<Article[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -28,9 +30,13 @@ const formattedDate = computed(() => {
 });
 
 const formattedName = computed(() => {
-  console.log(article)
-  if (!article.value?.author) return '';
-  return `${article.value.author.user.firstName} ${article.value.author.user.lastName}`;
+  if (!publisher.value?.user) return 'Anonymous';
+  const { firstName, lastName } = publisher.value.user;
+  return `${firstName} ${lastName}`;
+});
+
+const publisherAvatar = computed(() => {
+  return publisher.value?.avatar?.url || '/default-avatar.png';
 });
 
 const readingTime = computed(() => {
@@ -39,6 +45,19 @@ const readingTime = computed(() => {
   const minutes = Math.ceil(words / 200);
   return `${minutes} min read`;
 });
+
+const socialLinks = computed(() => ({
+  telegram: publisher.value?.contactInfo?.telegram,
+  instagram: publisher.value?.contactInfo?.instagram,
+  facebook: publisher.value?.contactInfo?.facebook
+}));
+
+const openSocialLink = (type: 'telegram' | 'instagram' | 'facebook') => {
+  const link = socialLinks.value[type];
+  if (link) {
+    window.open(link, '_blank');
+  }
+};
 
 const fetchArticle = async (slug: string) => {
   const { data, error: fetchError } = await restClient.get(`/v1/articles/by-slug/${slug}`);
@@ -62,6 +81,19 @@ const fetchRelatedArticles = async (id: string) => {
   return data?.data || [];
 };
 
+const fetchPublisher = async (publisherId: string | null) => {
+  if (!publisherId) return null;
+
+  const { data, error: fetchError } = await restClient.get(`/v1/public/publishers/${publisherId}`);
+
+  if (fetchError) {
+    console.error('Error fetching publisher:', fetchError);
+    return null;
+  }
+
+  return data?.data;
+};
+
 const initializeData = async () => {
   try {
     loading.value = true;
@@ -76,7 +108,13 @@ const initializeData = async () => {
     article.value = articleData;
 
     if (articleData?.id) {
-      relatedArticles.value = await fetchRelatedArticles(articleData.id);
+      const [publisherData, relatedArticlesData] = await Promise.all([
+        fetchPublisher(articleData.publisherId || null),
+        fetchRelatedArticles(articleData.id)
+      ]);
+
+      publisher.value = publisherData;
+      relatedArticles.value = relatedArticlesData;
     }
   } catch (e) {
     error.value = 'An error occurred while loading the article';
@@ -108,7 +146,6 @@ onMounted(() => {
     </div>
 
     <template v-else-if="article">
-      <!-- Top Navigation Bar -->
       <nav class="top-nav">
         <Breadcrumbs :items="breadcrumbs" />
         <div class="nav-actions">
@@ -124,15 +161,14 @@ onMounted(() => {
             <p class="description">{{ article.description }}</p>
 
             <div class="article-meta">
-              <div class="author-info">
+              <div class="publisher-info">
                 <img
-                  :src="article.publisher?.author.user.avatar?.url || '/default-avatar.png'"
-                  alt="Author avatar"
-                  class="author-avatar"
+                  :src="publisherAvatar"
+                  :alt="formattedName"
+                  class="publisher-avatar"
                 >
-                <div class="author-details">
-                  <span class="author-name">
-                    {{ formattedName || 'Anonymous' }}</span>
+                <div class="publisher-details">
+                  <span class="publisher-name">{{ formattedName }}</span>
                   <div class="post-info">
                     <span>{{ formattedDate }}</span>
                     <span class="dot-separator">·</span>
@@ -142,9 +178,27 @@ onMounted(() => {
               </div>
 
               <div class="share-buttons">
-                <Button icon="pi pi-twitter" class="p-button-text" />
-                <Button icon="pi pi-facebook" class="p-button-text" />
-                <Button icon="pi pi-linkedin" class="p-button-text" />
+                <Button 
+                  icon="pi pi-telegram" 
+                  class="p-button-text"
+                  @click="openSocialLink('telegram')"
+                  :disabled="!socialLinks.telegram"
+                  :title="socialLinks.telegram ? 'Visit Telegram' : 'Telegram not available'"
+                />
+                <Button 
+                  icon="pi pi-facebook" 
+                  class="p-button-text"
+                  @click="openSocialLink('facebook')"
+                  :disabled="!socialLinks.facebook"
+                  :title="socialLinks.facebook ? 'Visit Facebook' : 'Facebook not available'"
+                />
+                <Button 
+                  icon="pi pi-instagram" 
+                  class="p-button-text"
+                  @click="openSocialLink('instagram')"
+                  :disabled="!socialLinks.instagram"
+                  :title="socialLinks.instagram ? 'Visit Instagram' : 'Instagram not available'"
+                />
                 <Button icon="pi pi-bookmark" class="p-button-text" />
               </div>
             </div>
@@ -159,7 +213,7 @@ onMounted(() => {
 
           <div class="content-body">
             <div v-if="typeof article.content === 'object'" class="content-blocks">
-              <template v-for="(block, index) in article.content.blocks" :key="index">
+              <template v-for="(block, index) in article.content?.blocks" :key="index">
                 <div v-if="block.type === 'paragraph'" class="content-paragraph">
                   {{ block.data.text }}
                 </div>
@@ -182,9 +236,8 @@ onMounted(() => {
         </div>
       </article>
 
-      <!-- Related Articles -->
       <section v-if="relatedArticles.length > 0" class="related-articles">
-        <h2>More from Medium</h2>
+        <h2>Related articles</h2>
         <div class="related-grid">
           <article
             v-for="related in relatedArticles"
@@ -194,15 +247,26 @@ onMounted(() => {
             <NuxtLink :to="`/articles-preview/${related.slug}`">
               <div class="related-content">
                 <div class="related-text">
-                  <div class="related-author">
-                    <img
-                      :src="related.author?.avatar || '/default-avatar.png'"
-                      alt="Author"
-                      class="author-mini-avatar"
-                    >
-                    <span>{{ related.author?.name || 'Anonymous' }}</span>
-                  </div>
                   <h3>{{ related.title }}</h3>
+                  <div class="related-meta">
+                    <div class="related-publisher">
+                      <img
+                        :src="related.publisher?.avatar?.url || '/default-avatar.png'"
+                        :alt="related.publisher?.user ? 
+                          `${related.publisher.user.firstName} ${related.publisher.user.lastName}` : 
+                          'Anonymous'"
+                        class="publisher-mini-avatar"
+                      >
+                      <span class="publisher-name">
+                        {{ related.publisher?.user ? 
+                          `${related.publisher.user.firstName} ${related.publisher.user.lastName}` : 
+                          'Anonymous' 
+                        }}
+                      </span>
+                      <span class="dot-separator">·</span>
+                      <span class="read-time">{{ Math.ceil((related.content?.toString().split(' ').length || 0) / 200) }} min read</span>
+                    </div>
+                  </div>
                 </div>
                 <img
                   v-if="related.image"
@@ -261,25 +325,25 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
-.author-info {
+.publisher-info {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.author-avatar {
+.publisher-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.author-details {
+.publisher-details {
   display: flex;
   flex-direction: column;
 }
 
-.author-name {
+.publisher-name {
   font-weight: 500;
   color: #242424;
 }
@@ -344,36 +408,56 @@ onMounted(() => {
 .related-content {
   display: flex;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1.5rem;
+  padding: 1rem 0;
 }
 
 .related-text {
   flex: 1;
+  min-width: 0;
 }
 
-.related-author {
+.related-publisher {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
 }
 
-.author-mini-avatar {
+.publisher-mini-avatar {
   width: 24px;
   height: 24px;
   border-radius: 50%;
 }
 
 .related-thumbnail {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 80px;
   object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
-.related-article h3 {
+.related-text h3 {
   font-size: 1.2rem;
   line-height: 1.4;
   color: #242424;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.publisher-name {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.read-time {
+  color: #666;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 768px) {
@@ -392,12 +476,39 @@ onMounted(() => {
   }
 
   .related-content {
-    flex-direction: column;
+    flex-direction: row;
+    padding: 0.75rem 0;
   }
 
   .related-thumbnail {
-    width: 100%;
-    height: 200px;
+    width: 100px;
+    height: 70px;
   }
+
+  .related-text h3 {
+    font-size: 1.1rem;
+  }
+
+  .related-publisher {
+    font-size: 0.8rem;
+  }
+}
+
+.related-meta {
+  margin-top: 0.5rem;
+}
+
+.share-buttons .p-button.p-button-text {
+  color: #666;
+}
+
+.share-buttons .p-button.p-button-text:not(:disabled):hover {
+  color: #4b0082;
+  background: rgba(75, 0, 130, 0.04);
+}
+
+.share-buttons .p-button.p-button-text:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

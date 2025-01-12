@@ -1,4 +1,4 @@
-export interface File {
+export interface IFile {
   id: string;
   url: string;
   name: string;
@@ -6,4 +6,4 @@ export interface File {
   size: number | null;
   createdAt: Date;
   updatedAt: Date;
-} 
+}

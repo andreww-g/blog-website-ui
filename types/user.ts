@@ -1,15 +1,11 @@
-import type { File } from './file';
-import type { Author } from './author';
+import type {IFile} from "~/types/file";
 
-export interface User {
+export interface IUser {
   id: string;
   email: string;
-  password: string;
   firstName: string;
   lastName: string;
-  avatar: File | null;
-  authorId: string | null;
-  author: Author | null;
+  avatar: IFile | null;
   createdAt: Date;
   updatedAt: Date;
-} 
+}

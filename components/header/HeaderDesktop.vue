@@ -1,5 +1,10 @@
 <script setup lang="ts">
 const showAuth = ref(false);
+const router = useRouter();
+
+const handleSearch = () => {
+  router.push('/publishers-preview');
+};
 </script>
 
 <template>
@@ -13,7 +18,7 @@ const showAuth = ref(false);
       <nav class="navigation">
         <ul>
           <li><NuxtLink to="/articles-preview">Articles</NuxtLink></li>
-          <li><NuxtLink to="/publishers">Publishers</NuxtLink></li>
+          <li><NuxtLink to="/publishers-preview">Publishers</NuxtLink></li>
           <li><NuxtLink to="/reviews">Reviews</NuxtLink></li>
           <li><NuxtLink to="/education">Education</NuxtLink></li>
           <li><NuxtLink to="/ethics">Ethics</NuxtLink></li>
@@ -21,7 +26,7 @@ const showAuth = ref(false);
         </ul>
       </nav>
       <div class="user-actions">
-        <button class="search-btn">
+        <button class="search-btn" @click="handleSearch">
           <i class="pi pi-search"></i>
         </button>
         <button class="profile-btn" @click="showAuth = true">
@@ -89,11 +94,16 @@ const showAuth = ref(false);
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 50%;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, transform 0.2s;
 }
 
 .user-actions button:hover {
   background-color: #4b0082;
+  transform: scale(1.1);
+}
+
+.user-actions button:active {
+  transform: scale(0.95);
 }
 
 .user-actions button i {
