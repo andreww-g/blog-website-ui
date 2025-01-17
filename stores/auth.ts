@@ -1,7 +1,8 @@
 import { jwtDecode } from 'jwt-decode';
 import { defineStore } from 'pinia';
 import { restClient } from '~/openapi/rest-client';
-import { userAuthorStore } from "~/stores/author";
+import { userUserStore } from "~/stores/user";
+import {useToast} from "primevue/usetoast";
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref<string | null>(localStorage.getItem('accessToken'));
@@ -11,20 +12,25 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = tokens?.accessToken || null;
     refreshToken.value = tokens?.refreshToken || null;
 
+    if (!accessToken.value || !refreshToken.value) {
+      useToast().error('Failed to set tokens')
+      return;
+    }
+
     localStorage.setItem('accessToken', accessToken.value);
     localStorage.setItem('refreshToken', refreshToken.value);
   };
 
   const signOut = () => {
     setTokens({ accessToken: null, refreshToken: null });
-    userAuthorStore().setProfile(null);
+    userUserStore().setProfile(null);
     navigateTo({ name: 'auth' });
   };
 
   const refresh = async () => {
     if (!refreshToken.value) return false;
 
-    const { data } = await restClient.post('/auth/refresh-token', {
+    const { data } = await restClient.post('/v1/auth/refresh-token', {
       body: { refreshToken: refreshToken.value },
       auth: false,
     });
@@ -45,9 +51,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   const getAccessToken = async (): Promise<string | undefined> => {
     if (!refreshToken.value) return undefined;
+
     if (!accessToken.value || isTokenExpired(accessToken.value)) {
       await refresh();
     }
+
     return accessToken.value;
   };
 

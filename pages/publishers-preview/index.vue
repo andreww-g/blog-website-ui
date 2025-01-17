@@ -1,12 +1,7 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
-import type { Publisher } from '~/types/publisher';
-import { restClient } from "~/openapi/rest-client";
+import { usePublisherStore } from '~/stores/publisher';
 
-const publishers = ref<Publisher[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
-const total = ref(0);
+const publisherStore = usePublisherStore();
 
 const currentPage = ref(0);
 const itemsPerPage = ref(10);
@@ -17,64 +12,31 @@ const breadcrumbs = [
   { text: 'Publishers' }
 ];
 
-const fetchPublishers = async (page: number, perPage: number, search?: string) => {
-  const { data, error: fetchError } = await restClient.get('/v1/public/publishers', {
-    query: {
-      skip: page * perPage,
-      take: perPage,
-      searchQuery: search || null
-    }
+const fetchPublishers = async () => {
+  await publisherStore.fetchPublishers({
+    skip: currentPage.value * itemsPerPage.value,
+    take: itemsPerPage.value,
+    searchQuery: searchQuery.value
   });
-
-  if (fetchError) {
-    error.value = fetchError.message;
-    return { data: [], total: 0 };
-  }
-
-  return {
-    data: data?.data || [],
-    total: data?.total || 0
-  };
 };
 
-const onPageChange = async (event: { page: number, rows: number }) => {
+const onPageChange = async (event: { page: number; rows: number }) => {
   currentPage.value = event.page;
   itemsPerPage.value = event.rows;
-  await initializeData();
+  await fetchPublishers();
 };
 
 const debouncedSearch = useDebounceFn(async () => {
   currentPage.value = 0;
-  await initializeData();
+  await fetchPublishers();
 }, 300);
-
-const initializeData = async () => {
-  try {
-    loading.value = true;
-    error.value = null;
-
-    const result = await fetchPublishers(
-      currentPage.value,
-      itemsPerPage.value,
-      searchQuery.value
-    );
-
-    publishers.value = result.data;
-    total.value = result.total;
-  } catch (e) {
-    error.value = 'An error occurred while loading publishers';
-    console.error('Error initializing data:', e);
-  } finally {
-    loading.value = false;
-  }
-};
 
 watch(searchQuery, () => {
   debouncedSearch();
 });
 
 onMounted(() => {
-  initializeData();
+  fetchPublishers();
 });
 </script>
 
@@ -96,18 +58,18 @@ onMounted(() => {
     </div>
 
     <div class="content-section">
-      <div v-if="loading" class="loading">
+      <div v-if="publisherStore.loading" class="loading">
         <ProgressSpinner />
       </div>
 
-      <div v-else-if="error" class="error">
-        <Message severity="error" :text="error" />
+      <div v-else-if="publisherStore.error" class="error">
+        <Message severity="error" :text="publisherStore.error" />
       </div>
 
       <template v-else>
         <div class="publishers-grid">
           <div
-            v-for="publisher in publishers"
+            v-for="publisher in publisherStore.publishers"
             :key="publisher.id"
             class="publisher-card"
           >
@@ -120,7 +82,7 @@ onMounted(() => {
               <div class="publisher-info">
                 <h3>{{ publisher.user ? `${publisher.user.firstName} ${publisher.user.lastName}` : 'Anonymous' }}</h3>
                 <div class="publisher-stats">
-                  <span>{{ publisher.articles?.length || 0 }} Articles</span>
+                  <span>Articles: {{ publisher.articles?.length || 0 }} </span>
                 </div>
               </div>
             </div>
@@ -168,9 +130,9 @@ onMounted(() => {
         </div>
 
         <Paginator
-          v-if="total > itemsPerPage"
+          v-if="publisherStore.total > itemsPerPage"
           :rows="itemsPerPage"
-          :total-records="total"
+          :total-records="publisherStore.total"
           :first="currentPage * itemsPerPage"
           @page="onPageChange"
         />

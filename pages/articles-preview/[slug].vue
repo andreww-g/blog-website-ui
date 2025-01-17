@@ -107,9 +107,9 @@ const initializeData = async () => {
     const articleData = await fetchArticle(slug);
     article.value = articleData;
 
-    if (articleData?.id) {
+    if (articleData?.publisherId && articleData.id) {
       const [publisherData, relatedArticlesData] = await Promise.all([
-        fetchPublisher(articleData.publisherId || null),
+        fetchPublisher(articleData.publisherId),
         fetchRelatedArticles(articleData.id)
       ]);
 
@@ -161,7 +161,10 @@ onMounted(() => {
             <p class="description">{{ article.description }}</p>
 
             <div class="article-meta">
-              <div class="publisher-info">
+              <NuxtLink 
+                :to="`/publishers/${publisher?.id}`" 
+                class="publisher-info"
+              >
                 <img
                   :src="publisherAvatar"
                   :alt="formattedName"
@@ -175,26 +178,26 @@ onMounted(() => {
                     <span>{{ readingTime }}</span>
                   </div>
                 </div>
-              </div>
+              </NuxtLink>
 
               <div class="share-buttons">
-                <Button 
-                  icon="pi pi-telegram" 
-                  class="p-button-text"
+                <Button
+                  icon="pi pi-telegram"
+                  class="p-button-text social-button"
                   @click="openSocialLink('telegram')"
                   :disabled="!socialLinks.telegram"
                   :title="socialLinks.telegram ? 'Visit Telegram' : 'Telegram not available'"
                 />
-                <Button 
-                  icon="pi pi-facebook" 
-                  class="p-button-text"
+                <Button
+                  icon="pi pi-facebook"
+                  class="p-button-text social-button"
                   @click="openSocialLink('facebook')"
                   :disabled="!socialLinks.facebook"
                   :title="socialLinks.facebook ? 'Visit Facebook' : 'Facebook not available'"
                 />
-                <Button 
-                  icon="pi pi-instagram" 
-                  class="p-button-text"
+                <Button
+                  icon="pi pi-instagram"
+                  class="p-button-text social-button"
                   @click="openSocialLink('instagram')"
                   :disabled="!socialLinks.instagram"
                   :title="socialLinks.instagram ? 'Visit Instagram' : 'Instagram not available'"
@@ -205,7 +208,6 @@ onMounted(() => {
           </div>
         </header>
 
-        <!-- Article Content -->
         <div class="article-content">
           <div v-if="article.image" class="featured-image">
             <img :src="article.image" :alt="article.title">
@@ -224,7 +226,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Tags -->
           <div class="tags-section">
             <Chip
               v-for="tag in article.tags"
@@ -252,15 +253,15 @@ onMounted(() => {
                     <div class="related-publisher">
                       <img
                         :src="related.publisher?.avatar?.url || '/default-avatar.png'"
-                        :alt="related.publisher?.user ? 
-                          `${related.publisher.user.firstName} ${related.publisher.user.lastName}` : 
+                        :alt="related.publisher?.user ?
+                          `${related.publisher.user.firstName} ${related.publisher.user.lastName}` :
                           'Anonymous'"
                         class="publisher-mini-avatar"
                       >
                       <span class="publisher-name">
-                        {{ related.publisher?.user ? 
-                          `${related.publisher.user.firstName} ${related.publisher.user.lastName}` : 
-                          'Anonymous' 
+                        {{ related.publisher?.user ?
+                          `${related.publisher.user.firstName} ${related.publisher.user.lastName}` :
+                          'Anonymous'
                         }}
                       </span>
                       <span class="dot-separator">·</span>
@@ -329,6 +330,13 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.2s ease;
+}
+
+.publisher-info:hover {
+  opacity: 0.8;
 }
 
 .publisher-avatar {
@@ -499,15 +507,27 @@ onMounted(() => {
 }
 
 .share-buttons .p-button.p-button-text {
-  color: #666;
+  color: #4b0082;
 }
 
 .share-buttons .p-button.p-button-text:not(:disabled):hover {
-  color: #4b0082;
   background: rgba(75, 0, 130, 0.04);
 }
 
 .share-buttons .p-button.p-button-text:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.social-button.p-button.p-button-text {
+  color: #4b0082;
+}
+
+.social-button.p-button.p-button-text:not(:disabled):hover {
+  background: rgba(75, 0, 130, 0.04);
+}
+
+.social-button.p-button.p-button-text:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
