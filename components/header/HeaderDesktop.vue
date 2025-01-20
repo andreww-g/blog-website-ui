@@ -1,9 +1,47 @@
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue';
+import { useAuthStore } from '~/stores/auth';
+import AuthComponent from '~/pages/auth.vue';
+
 const showAuth = ref(false);
 const router = useRouter();
+const authStore = useAuthStore();
+const menu = ref();
+
+onMounted(() => {
+  authStore.initializeTokens();
+});
 
 const handleSearch = () => {
   router.push('/publishers-preview');
+};
+
+const handleSignOut = () => {
+  authStore.signOut();
+};
+
+const items = computed(() => [
+  {
+    label: 'Sign Out',
+    icon: 'pi pi-sign-out',
+    command: handleSignOut
+  }
+]);
+
+const toggleMenu = (event: Event) => {
+  menu.value?.toggle(event);
+};
+
+const handleProfileClick = (event: Event) => {
+  if (authStore.isAuthorized) {
+    toggleMenu(event);
+  } else {
+    showAuth.value = true;
+  }
+};
+
+const navigateToCreateArticle = () => {
+  navigateTo('/articles-preview/create');
 };
 </script>
 
@@ -19,19 +57,25 @@ const handleSearch = () => {
         <ul>
           <li><NuxtLink to="/articles-preview">Articles</NuxtLink></li>
           <li><NuxtLink to="/publishers-preview">Publishers</NuxtLink></li>
-          <li><NuxtLink to="/reviews">Reviews</NuxtLink></li>
-          <li><NuxtLink to="/education">Education</NuxtLink></li>
-          <li><NuxtLink to="/ethics">Ethics</NuxtLink></li>
-          <li><NuxtLink to="/contact">Contact Us</NuxtLink></li>
+          <li><NuxtLink to="/contact-us">Contact Us</NuxtLink></li>
         </ul>
       </nav>
       <div class="user-actions">
-        <button class="search-btn" @click="handleSearch">
-          <i class="pi pi-search"></i>
-        </button>
-        <button class="profile-btn" @click="showAuth = true">
-          <i class="pi pi-user"></i>
-        </button>
+        <Button
+          v-if="authStore.isAuthorized"
+          label="Create Article"
+          icon="pi pi-plus"
+          class="create-button"
+          @click="navigateToCreateArticle"
+        />
+        <Button
+          icon="pi pi-user"
+          class="profile-btn p-button-text"
+          @click="handleProfileClick"
+          severity="secondary"
+          :title="authStore.isAuthorized ? 'Account Menu' : 'Sign In'"
+        />
+        <Menu :model="items" :popup="true" ref="menu" />
       </div>
     </div>
     <AuthComponent v-if="showAuth" @close="showAuth = false" />
@@ -85,29 +129,69 @@ const handleSearch = () => {
 .user-actions {
   display: flex;
   gap: 1rem;
+  align-items: center;
 }
 
-.user-actions button {
-  background: none;
+.create-button {
+  background-color: #4b0082 !important;
+  border: none !important;
+  padding: 0.75rem 1.5rem !important;
+  transition: background-color 0.2s;
+}
+
+.create-button:hover {
+  background-color: #6a0dad !important;
+}
+
+.profile-btn {
+  background: none !important;
   border: none;
-  color: white;
+  color: white !important;
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 50%;
   transition: background-color 0.2s, transform 0.2s;
 }
 
-.user-actions button:hover {
-  background-color: #4b0082;
+.profile-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
   transform: scale(1.1);
 }
 
-.user-actions button:active {
+.profile-btn:active {
   transform: scale(0.95);
 }
 
-.user-actions button i {
-  font-size: 1.2rem;
+:deep(.p-menu) {
+  min-width: 150px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.p-menuitem-link) {
+  padding: 0.75rem 1rem;
+  color: #333;
+  transition: background-color 0.2s;
+}
+
+:deep(.p-menuitem-link:hover) {
+  background-color: #f5f5f5;
+}
+
+:deep(.p-menuitem-icon) {
+  color: #4b0082;
+  margin-right: 0.5rem;
+}
+
+:deep(.p-button.p-button-text) {
+  color: white !important;
+  padding: 0.5rem;
+}
+
+:deep(.p-button.p-button-text:hover) {
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 @media (max-width: 768px) {
@@ -117,6 +201,10 @@ const handleSearch = () => {
 
   .header-content {
     justify-content: space-between;
+  }
+
+  .create-button {
+    display: none;  /* Hide create button on mobile */
   }
 }
 </style>

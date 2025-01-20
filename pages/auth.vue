@@ -6,10 +6,12 @@ import useVuelidate from '@vuelidate/core';
 import { required, email, helpers } from '@vuelidate/validators';
 import { useToast } from 'primevue/usetoast';
 import { restClient } from '~/openapi/rest-client';
+import { useRouter } from 'vue-router';
 
 const authStore = useAuthStore();
 const toast = useToast();
 const isLoading = ref(false);
+const router = useRouter();
 
 const form = reactive({
   email: '',
@@ -33,6 +35,11 @@ const rules = {
 };
 
 const v$ = useVuelidate(rules, form);
+
+const handleClose = () => {
+  emit('close');
+  router.push('/');
+};
 
 watch(() => form.email, (newVal) => {
   if (newVal === '') {
@@ -134,7 +141,7 @@ const emit = defineEmits(['close']);
 </script>
 
 <template>
-  <div class="auth-overlay" @click.self="$emit('close')">
+  <div class="auth-overlay" @click.self="handleClose">
     <div class="auth-container">
       <Button 
         icon="pi pi-times"
@@ -142,7 +149,7 @@ const emit = defineEmits(['close']);
         rounded
         aria-label="Cancel"
         class="close-btn"
-        @click="$emit('close')"
+        @click="handleClose"
       />
       <h1>Login</h1>
       <form @submit.prevent="submit">
@@ -267,37 +274,27 @@ button:disabled {
 
 .close-btn {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 1rem;
+  right: 1rem;
   color: white !important;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.close-btn::after {
-  display: none !important;
-}
-
-.close-btn:hover::after {
-  display: none !important;
-}
-
-.close-btn:focus {
-  outline: none !important;
-  box-shadow: none !important;
+  z-index: 1;
 }
 
 .close-btn:hover {
-  background: transparent !important;
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
-:deep(.p-button-text) {
-  background: transparent !important;
+:deep(.p-button.p-button-rounded) {
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
-:deep(.p-button-text:hover) {
-  background: transparent !important;
+:deep(.p-button.p-button-text) {
+  color: white !important;
+}
+
+:deep(.p-button.p-button-text:hover) {
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 :deep(.p-toast) {

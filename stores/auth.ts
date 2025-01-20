@@ -2,23 +2,34 @@ import { jwtDecode } from 'jwt-decode';
 import { defineStore } from 'pinia';
 import { restClient } from '~/openapi/rest-client';
 import { userUserStore } from "~/stores/user";
-import {useToast} from "primevue/usetoast";
 
 export const useAuthStore = defineStore('auth', () => {
-  const accessToken = ref<string | null>(localStorage.getItem('accessToken'));
-  const refreshToken = ref<string | null>(localStorage.getItem('refreshToken'));
+  const accessToken = ref<string | null>(null);
+  const refreshToken = ref<string | null>(null);
+  const initialized = ref(false);
+
+  // Initialize tokens from localStorage
+  const initializeTokens = () => {
+    if (process.client) {  // Only run on client-side
+      accessToken.value = localStorage.getItem('accessToken');
+      refreshToken.value = localStorage.getItem('refreshToken');
+    }
+    initialized.value = true;
+  };
 
   const setTokens = (tokens: { accessToken?: string | null, refreshToken?: string | null }) => {
     accessToken.value = tokens?.accessToken || null;
     refreshToken.value = tokens?.refreshToken || null;
 
-    if (!accessToken.value || !refreshToken.value) {
-      useToast().error('Failed to set tokens')
-      return;
+    if (process.client) {  // Only interact with localStorage on client-side
+      if (tokens?.accessToken && tokens?.refreshToken) {
+        localStorage.setItem('accessToken', tokens.accessToken);
+        localStorage.setItem('refreshToken', tokens.refreshToken);
+      } else {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      }
     }
-
-    localStorage.setItem('accessToken', accessToken.value);
-    localStorage.setItem('refreshToken', refreshToken.value);
   };
 
   const signOut = () => {
@@ -39,7 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
     else signOut();
   };
 
-  const isTokenExpired = (token: string | undefined): boolean => {
+  const isTokenExpired = (token: string | null): boolean => {
     if (!token) return true;
     try {
       const decodedToken: { exp: number } = jwtDecode(token);
@@ -49,8 +60,8 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
-  const getAccessToken = async (): Promise<string | undefined> => {
-    if (!refreshToken.value) return undefined;
+  const getAccessToken = async (): Promise<string | null> => {
+    if (!refreshToken.value) return null;
 
     if (!accessToken.value || isTokenExpired(accessToken.value)) {
       await refresh();
@@ -59,7 +70,17 @@ export const useAuthStore = defineStore('auth', () => {
     return accessToken.value;
   };
 
-  const isAuthorized = computed(() => !!accessToken.value && !isTokenExpired(refreshToken.value));
+  const isAuthorized = computed(() => {
+    if (!initialized.value) return false;
+    return !!accessToken.value && 
+           !!refreshToken.value && 
+           !isTokenExpired(refreshToken.value);
+  });
+
+  // Initialize on store creation
+  if (process.client) {  // Only run on client-side
+    initializeTokens();
+  }
 
   return {
     isAuthorized,
@@ -69,5 +90,6 @@ export const useAuthStore = defineStore('auth', () => {
     signOut,
     setTokens,
     getAccessToken,
+    initializeTokens,
   };
 });

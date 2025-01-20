@@ -2,15 +2,20 @@
 import { ref, onMounted } from 'vue';
 import { restClient } from '~/openapi/rest-client';
 import type { Article } from '~/types/article';
+import { useReadingTime } from '~/composables/useReadingTime';
+import { useAuthStore } from '~/stores/auth';
 
 const articles = ref<Article[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
+const authStore = useAuthStore();
 
 const breadcrumbs = [
   { text: 'Home', to: '/' },
   { text: 'Articles' }
 ];
+
+const { calculateReadingTime } = useReadingTime();
 
 const fetchArticles = async () => {
   const { data, error: fetchError } = await restClient.get('/v1/articles', {
@@ -52,6 +57,7 @@ onMounted(() => {
 <template>
   <div class="articles-list">
     <Breadcrumbs :items="breadcrumbs" />
+
     <div v-if="loading" class="loading">
       Loading...
     </div>
@@ -77,10 +83,18 @@ onMounted(() => {
               <h2>{{ article.title }}</h2>
               <p>{{ article.description }}</p>
               <div class="article-meta">
-                <span class="article-type">Publication date</span>
-                <span class="publish-date">
-                  {{ new Date(article.publishedAt || article.createdAt).toLocaleDateString() }}
-                </span>
+                <div class="meta-item">
+                  <span class="label">Publication date:</span>
+                  <span class="value">
+                    {{ new Date(article.publishedAt || article.createdAt).toLocaleDateString() }}
+                  </span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">Reading time:</span>
+                  <span class="value">
+                    {{ calculateReadingTime(article.content) }}
+                  </span>
+                </div>
               </div>
             </div>
           </NuxtLink>
@@ -164,16 +178,25 @@ h1 {
 
 .article-meta {
   display: flex;
-  gap: 1rem;
-  align-items: center;
-  color: #666;
+  flex-direction: column;
+  gap: 0.25rem;
   font-size: 0.9rem;
+  margin-top: 1rem;
 }
 
-.article-type {
-  text-transform: uppercase;
-  font-weight: 600;
+.meta-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.label {
   color: #333;
+  font-weight: 700;
+}
+
+.value {
+  color: #666;
 }
 
 @media (max-width: 768px) {
