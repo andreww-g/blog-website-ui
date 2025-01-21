@@ -14,16 +14,16 @@ export const usePublisherStore = defineStore('publisher', () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  const fetchPublishers = async (params: { 
-    skip?: number; 
-    take?: number; 
+  const fetchPublishers = async (params: {
+    skip?: number;
+    take?: number;
     searchQuery?: string;
   }): Promise<{ data: Publisher[]; total: number }> => {
     loading.value = true;
     error.value = null;
 
     try {
-      const { data, error: apiError } = await restClient.get('/v1/public/publishers', {
+      const { data, error: apiError } = await restClient.get('/v1/publishers', {
         query: {
           skip: params.skip,
           take: params.take,

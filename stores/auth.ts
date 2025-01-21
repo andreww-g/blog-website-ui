@@ -8,9 +8,8 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshToken = ref<string | null>(null);
   const initialized = ref(false);
 
-  // Initialize tokens from localStorage
   const initializeTokens = () => {
-    if (process.client) {  // Only run on client-side
+    if (import.meta.client) {
       accessToken.value = localStorage.getItem('accessToken');
       refreshToken.value = localStorage.getItem('refreshToken');
     }
@@ -38,11 +37,11 @@ export const useAuthStore = defineStore('auth', () => {
     navigateTo({ name: 'auth' });
   };
 
-  const refresh = async () => {
-    if (!refreshToken.value) return false;
+  const refresh = async (token: string = refreshToken.value || '') => {
+    if (!token && !refreshToken.value) return false;
 
     const { data } = await restClient.post('/v1/auth/refresh-token', {
-      body: { refreshToken: refreshToken.value },
+      body: { refreshToken: token ?? refreshToken.value },
       auth: false,
     });
 
@@ -72,13 +71,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthorized = computed(() => {
     if (!initialized.value) return false;
-    return !!accessToken.value && 
-           !!refreshToken.value && 
+    return !!accessToken.value &&
+           !!refreshToken.value &&
            !isTokenExpired(refreshToken.value);
   });
 
-  // Initialize on store creation
-  if (process.client) {  // Only run on client-side
+  if (import.meta.client) {
     initializeTokens();
   }
 

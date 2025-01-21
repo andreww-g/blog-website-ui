@@ -1,7 +1,14 @@
 <script lang="ts" setup>
 import { usePublisherStore } from '~/stores/publisher';
+import { useAuthStore } from '~/stores/auth';
 
 const publisherStore = usePublisherStore();
+const authStore = useAuthStore();
+
+// Redirect if not authorized
+if (!authStore.isAuthorized) {
+  navigateTo('/auth');
+}
 
 const currentPage = ref(0);
 const itemsPerPage = ref(10);

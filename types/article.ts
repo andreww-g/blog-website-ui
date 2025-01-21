@@ -17,3 +17,9 @@ export interface Article {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export enum ArticleCategoryEnum {
+  TECHNOLOGY = 'TECHNOLOGY',
+  BUSINESS = 'BUSINESS',
+  LIFESTYLE = 'LIFESTYLE',
+}

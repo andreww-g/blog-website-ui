@@ -84,7 +84,7 @@ const fetchRelatedArticles = async (id: string) => {
 const fetchPublisher = async (publisherId: string | null) => {
   if (!publisherId) return null;
 
-  const { data, error: fetchError } = await restClient.get(`/v1/public/publishers/${publisherId}`);
+  const { data, error: fetchError } = await restClient.get(`/v1/publishers/${publisherId}`);
 
   if (fetchError) {
     console.error('Error fetching publisher:', fetchError);
@@ -161,8 +161,8 @@ onMounted(() => {
             <p class="description">{{ article.description }}</p>
 
             <div class="article-meta">
-              <NuxtLink 
-                :to="`/publishers/${publisher?.id}`" 
+              <NuxtLink
+                :to="`/publishers/${publisher?.id}`"
                 class="publisher-info"
               >
                 <img

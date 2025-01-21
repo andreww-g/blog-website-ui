@@ -6,13 +6,13 @@ import type { PermissionEnum } from '~/types/enums';
 import type { IProfile } from '~/types/profile';
 import {useToast} from "primevue/usetoast";
 
-type UserResponseType = OpenApiResponse<'get', 'v1/public/users/auth-profile'>['data'];
+type UserResponseType = OpenApiResponse<'get', 'v1/public/publishers/auth-profile'>['data'];
 
 export const userUserStore = defineStore('profile', () => {
     const response = ref<UserResponseType | null>(null);
 
     const fetchProfile = async (): Promise<{ data: UserResponseType | null, error: Error | null }> => {
-        const { data, error } = await restClient.get('v1/public/users/auth-profile');
+        const { data, error } = await restClient.get('v1/public/publishers/auth-profile');
 
         setProfile(data?.data ?? null);
 

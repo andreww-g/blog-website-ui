@@ -12,6 +12,14 @@ onMounted(() => {
   authStore.initializeTokens();
 });
 
+const handleNavigation = (path: string) => {
+  if (!authStore.isAuthorized && (path.includes('articles') || path.includes('publishers'))) {
+    showAuth.value = true;
+    return;
+  }
+  navigateTo(path);
+};
+
 const handleSearch = () => {
   router.push('/publishers-preview');
 };
@@ -20,17 +28,33 @@ const handleSignOut = () => {
   authStore.signOut();
 };
 
+const handleViewProfile = () => {
+  navigateTo('/profile');
+};
+
 const items = computed(() => [
+  {
+    label: 'View Profile',
+    icon: 'pi pi-user',
+    command: handleViewProfile,
+    visible: authStore.isAuthorized
+  },
+  {
+    separator: true
+  },
   {
     label: 'Sign Out',
     icon: 'pi pi-sign-out',
-    command: handleSignOut
+    command: handleSignOut,
+    visible: authStore.isAuthorized
+  },
+  {
+    label: 'Sign In',
+    icon: 'pi pi-sign-in',
+    command: () => { showAuth.value = true },
+    visible: !authStore.isAuthorized
   }
 ]);
-
-const toggleMenu = (event: Event) => {
-  menu.value?.toggle(event);
-};
 
 const handleProfileClick = (event: Event) => {
   if (authStore.isAuthorized) {
@@ -38,6 +62,10 @@ const handleProfileClick = (event: Event) => {
   } else {
     showAuth.value = true;
   }
+};
+
+const toggleMenu = (event: Event) => {
+  menu.value?.toggle(event);
 };
 
 const navigateToCreateArticle = () => {
@@ -55,18 +83,22 @@ const navigateToCreateArticle = () => {
       </div>
       <nav class="navigation">
         <ul>
-          <li><NuxtLink to="/articles-preview">Articles</NuxtLink></li>
-          <li><NuxtLink to="/publishers-preview">Publishers</NuxtLink></li>
+          <li>
+            <a href="#" @click.prevent="handleNavigation('/articles-preview')">Articles</a>
+          </li>
+          <li>
+            <a href="#" @click.prevent="handleNavigation('/publishers-preview')">Publishers</a>
+          </li>
           <li><NuxtLink to="/contact-us">Contact Us</NuxtLink></li>
         </ul>
       </nav>
       <div class="user-actions">
         <Button
           v-if="authStore.isAuthorized"
-          label="Create Article"
           icon="pi pi-plus"
-          class="create-button"
+          class="create-button p-button-text"
           @click="navigateToCreateArticle"
+          :title="'Create Article'"
         />
         <Button
           icon="pi pi-user"
@@ -75,7 +107,12 @@ const navigateToCreateArticle = () => {
           severity="secondary"
           :title="authStore.isAuthorized ? 'Account Menu' : 'Sign In'"
         />
-        <Menu :model="items" :popup="true" ref="menu" />
+        <Menu 
+          ref="menu" 
+          :model="items" 
+          :popup="true" 
+          class="header-menu"
+        />
       </div>
     </div>
     <AuthComponent v-if="showAuth" @close="showAuth = false" />
@@ -133,23 +170,33 @@ const navigateToCreateArticle = () => {
 }
 
 .create-button {
-  background-color: #4b0082 !important;
+  background: none !important;
   border: none !important;
-  padding: 0.75rem 1.5rem !important;
-  transition: background-color 0.2s;
+  color: white !important;
+  cursor: pointer;
+  padding: 0.5rem !important;
+  border-radius: 50% !important;
+  transition: background-color 0.2s, transform 0.2s;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
 }
 
 .create-button:hover {
-  background-color: #6a0dad !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  transform: scale(1.1);
+}
+
+.create-button:active {
+  transform: scale(0.95);
 }
 
 .profile-btn {
   background: none !important;
-  border: none;
+  border: none !important;
   color: white !important;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
+  padding: 0.5rem !important;
+  border-radius: 50% !important;
   transition: background-color 0.2s, transform 0.2s;
 }
 
@@ -162,36 +209,37 @@ const navigateToCreateArticle = () => {
   transform: scale(0.95);
 }
 
-:deep(.p-menu) {
-  min-width: 150px;
+:deep(.header-menu.p-menu) {
   background: white;
-  border: 1px solid #ddd;
   border-radius: 6px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  min-width: 180px;
 }
 
 :deep(.p-menuitem-link) {
-  padding: 0.75rem 1rem;
-  color: #333;
-  transition: background-color 0.2s;
+  padding: 0.75rem 1rem !important;
+  border-radius: 4px;
+  transition: all 0.2s;
 }
 
 :deep(.p-menuitem-link:hover) {
-  background-color: #f5f5f5;
+  background-color: rgba(106, 13, 173, 0.1) !important;
 }
 
 :deep(.p-menuitem-icon) {
-  color: #4b0082;
-  margin-right: 0.5rem;
+  color: #6a0dad !important;
+  margin-right: 0.75rem;
 }
 
-:deep(.p-button.p-button-text) {
-  color: white !important;
-  padding: 0.5rem;
+:deep(.p-menuitem-text) {
+  color: #333;
+  font-weight: 500;
 }
 
-:deep(.p-button.p-button-text:hover) {
-  background: rgba(255, 255, 255, 0.1) !important;
+:deep(.p-menu-separator) {
+  border-top: 1px solid #eee;
+  margin: 0.5rem 0;
 }
 
 @media (max-width: 768px) {

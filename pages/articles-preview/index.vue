@@ -4,11 +4,17 @@ import { restClient } from '~/openapi/rest-client';
 import type { Article } from '~/types/article';
 import { useReadingTime } from '~/composables/useReadingTime';
 import { useAuthStore } from '~/stores/auth';
+import { useRouter } from 'vue-router';
 
 const articles = ref<Article[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const authStore = useAuthStore();
+const router = useRouter();
+
+if (!authStore.isAuthorized) {
+  navigateTo('/auth');
+}
 
 const breadcrumbs = [
   { text: 'Home', to: '/' },

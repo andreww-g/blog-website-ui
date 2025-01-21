@@ -13,6 +13,11 @@ const toast = useToast();
 const isLoading = ref(false);
 const router = useRouter();
 
+// Redirect if already authorized
+if (authStore.isAuthorized) {
+  navigateTo('/');
+}
+
 const form = reactive({
   email: '',
   password: '',
