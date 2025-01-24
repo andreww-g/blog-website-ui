@@ -6,6 +6,7 @@ import { useToast } from 'primevue/usetoast';
 import { useArticleStore } from '~/stores/article';
 import Dropdown from 'primevue/dropdown';
 import { ArticleCategoryEnum } from '~/types/article';
+import ArticleEditor from '~/components/ArticleEditor.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -16,16 +17,16 @@ if (!authStore.isAuthorized) {
   navigateTo('/auth');
 }
 
+interface ArticleCategory {
+  type: ArticleCategoryEnum;
+  name: string;
+}
+
 const article = ref({
   title: '',
   description: '',
   content: {
-    blocks: [{
-      type: 'paragraph',
-      data: {
-        text: ''
-      }
-    }]
+    blocks: [] as Array<{type: string, data: {text: string}}>,
   },
   image: {
     url: '',
@@ -33,7 +34,10 @@ const article = ref({
     mimeType: null,
     size: null
   },
-  category: null,
+  category: {
+    type: ArticleCategoryEnum.TECHNOLOGY,
+    name: 'Technology'
+  } as ArticleCategory,
   slug: ''
 });
 
@@ -46,38 +50,40 @@ const breadcrumbs = [
   { text: 'Create Article' }
 ];
 
+const editorContent = ref('');
+
+const editorConfig = {
+  modules: {
+    toolbar: [
+      [{ 'header': [1, 2, false] }],
+      ['bold', 'italic', 'underline'],
+      ['blockquote'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }]
+    ]
+  },
+  placeholder: 'Write your article content here...'
+};
+
 onMounted(async () => {
   const { data } = await articleStore.getCategories();
   categories.value = data;
 });
 
-const handleEditorInput = (event: any) => {
-  const html = event.htmlValue || '';
+const handleEditorInput = (html: string) => {
+  if (!html) {
+    article.value.content.blocks = [];
+    return;
+  }
+
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  const blocks = [];
-
-  doc.body.childNodes.forEach((node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent?.trim();
-      if (text) {
-        blocks.push({
-          type: 'paragraph',
-          data: { text }
-        });
-      }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      const element = node as Element;
-      const text = element.textContent?.trim();
-      if (text) {
-        blocks.push({
-          type: 'paragraph',
-          data: { text }
-        });
-      }
+  const blocks = Array.from(doc.body.children).map(element => ({
+    type: 'paragraph',
+    data: {
+      text: element.textContent?.trim() || ''
     }
-  });
+  })).filter(block => block.data.text.length > 0);
 
-  article.value.content = { blocks };
+  article.value.content.blocks = blocks;
 };
 
 const generateSlug = computed(() => {
@@ -121,6 +127,15 @@ const handleUnpublish = async (articleId: string) => {
 };
 
 const handleSubmit = async () => {
+  if (!article.value.content.blocks.length) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Content cannot be empty'
+    });
+    return;
+  }
+
   const savedArticle = await handleSave();
   if (savedArticle) {
     await handlePublish(savedArticle.id);
@@ -129,14 +144,19 @@ const handleSubmit = async () => {
 };
 
 const categoryOptions = [
-  { name: ArticleCategoryEnum.TECHNOLOGY, slug: 'technology' },
-  { name: ArticleCategoryEnum.BUSINESS, slug: 'business' },
-  { name: ArticleCategoryEnum.LIFESTYLE, slug: 'lifestyle' },
-];
-
-const formatCategoryLabel = (category: { name: ArticleCategoryEnum }) => {
-  return category.name.charAt(0) + category.name.slice(1).toLowerCase();
-};
+  {
+    type: ArticleCategoryEnum.TECHNOLOGY,
+    name: 'Technology'
+  },
+  {
+    type: ArticleCategoryEnum.BUSINESS,
+    name: 'Business'
+  },
+  {
+    type: ArticleCategoryEnum.LIFESTYLE,
+    name: 'Lifestyle'
+  }
+] as ArticleCategory[];
 </script>
 
 <template>
@@ -168,28 +188,15 @@ const formatCategoryLabel = (category: { name: ArticleCategoryEnum }) => {
 
       <div class="form-group">
         <label for="content">Content</label>
-        <Editor
-          id="content"
-          :model-value="article.content.blocks.map(block => block.data.text).join('\n\n')"
-          @update:model-value="handleEditorInput"
-          editorStyle="height: 320px"
-          class="content-editor"
-        >
-          <template #toolbar>
-            <span class="ql-formats">
-              <button class="ql-bold" />
-              <button class="ql-italic" />
-              <button class="ql-underline" />
-            </span>
-            <span class="ql-formats">
-              <button class="ql-blockquote" />
-            </span>
-            <span class="ql-formats">
-              <button class="ql-list" value="ordered" />
-              <button class="ql-list" value="bullet" />
-            </span>
-          </template>
-        </Editor>
+        <ArticleEditor
+          v-model="editorContent"
+          @update:modelValue="handleEditorInput"
+          placeholder="Write your article content here..."
+        />
+        <small class="helper-text">Write your article content here. Use the toolbar for formatting.</small>
+        <div v-if="article.content.blocks.length === 0" class="error-text">
+          Content is required
+        </div>
       </div>
 
       <div class="form-group">
@@ -212,7 +219,6 @@ const formatCategoryLabel = (category: { name: ArticleCategoryEnum }) => {
           :option-value="null"
           placeholder="Select a category"
           class="w-full"
-          :option-label-method="formatCategoryLabel"
         />
       </div>
 
@@ -276,21 +282,25 @@ h1 {
   margin-bottom: 0.5rem;
   font-weight: 500;
   color: #333;
+  font-size: 0.95rem;
 }
 
 .form-group :deep(.p-inputtext),
-.form-group :deep(.p-editor-container) {
-  font-size: 1.1rem;
+.form-group :deep(.p-dropdown),
+.form-group :deep(.p-textarea) {
   padding: 1rem;
-  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-.form-group :deep(.p-editor-container) {
-  border: 1px solid #ced4da;
+.form-group :deep(.p-dropdown-label) {
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-.form-group :deep(.p-editor-container) .p-editor-content {
-  min-height: 320px;
+.form-group :deep(.p-dropdown-trigger) {
+  width: 3rem;
 }
 
 .form-actions {
@@ -300,9 +310,10 @@ h1 {
   margin-top: 2rem;
 }
 
-.p-button {
-  padding: 1rem 2rem !important;
-  font-size: 1.1rem !important;
+.form-actions :deep(.p-button) {
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  height: auto;
 }
 
 .p-button-secondary {
@@ -324,29 +335,6 @@ h1 {
     flex-direction: column;
   }
 
-  .p-button {
-    width: 100%;
-  }
-}
-
-.content-editor :deep(.ql-toolbar) {
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
-  background: #f8f9fa;
-  border-color: #ced4da;
-}
-
-.content-editor :deep(.ql-container) {
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
-  border-color: #ced4da;
-  font-size: 1.1rem;
-}
-
-.content-editor :deep(.ql-editor) {
-  min-height: 320px;
-  font-family: inherit;
-  line-height: 1.6;
 }
 
 .content-editor :deep(.ql-editor p) {
@@ -358,52 +346,10 @@ h1 {
   height: 28px;
 }
 
-.content-editor :deep(.ql-snow .ql-stroke) {
-  stroke: #666;
-}
-
-.content-editor :deep(.ql-snow .ql-fill) {
-  fill: #666;
-}
-
-.content-editor :deep(.ql-snow.ql-toolbar button:hover .ql-stroke) {
-  stroke: #6a0dad;
-}
-
-.content-editor :deep(.ql-snow.ql-toolbar button:hover .ql-fill) {
-  fill: #6a0dad;
-}
-
-.content-editor :deep(.ql-snow.ql-toolbar button.ql-active .ql-stroke) {
-  stroke: #6a0dad;
-}
-
-.content-editor :deep(.ql-snow.ql-toolbar button.ql-active .ql-fill) {
-  fill: #6a0dad;
-}
-
 .helper-text {
   display: block;
   margin-top: 0.5rem;
   color: #666;
   font-size: 0.875rem;
-}
-
-.form-group :deep(.p-dropdown) {
-  width: 100%;
-  padding: 0.75rem;
-  font-size: 1.1rem;
-}
-
-.form-group :deep(.p-dropdown-label) {
-  padding: 0.25rem;
-}
-
-.form-group :deep(.p-dropdown-items) {
-  padding: 0.5rem 0;
-}
-
-.form-group :deep(.p-dropdown-item) {
-  padding: 0.75rem 1rem;
 }
 </style>

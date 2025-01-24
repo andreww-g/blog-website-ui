@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-import AuthComponent from '~/pages/auth.vue';
+import { useRouter } from 'vue-router';
 
-const showAuth = ref(false);
 const router = useRouter();
 const authStore = useAuthStore();
 const menu = ref();
@@ -14,7 +13,7 @@ onMounted(() => {
 
 const handleNavigation = (path: string) => {
   if (!authStore.isAuthorized && (path.includes('articles') || path.includes('publishers'))) {
-    showAuth.value = true;
+    router.push('/register');
     return;
   }
   navigateTo(path);
@@ -40,7 +39,8 @@ const items = computed(() => [
     visible: authStore.isAuthorized
   },
   {
-    separator: true
+    separator: true,
+    visible: authStore.isAuthorized
   },
   {
     label: 'Sign Out',
@@ -49,9 +49,15 @@ const items = computed(() => [
     visible: authStore.isAuthorized
   },
   {
-    label: 'Sign In',
+    label: 'Sign Up',
+    icon: 'pi pi-user-plus',
+    command: () => { router.push('/register') },
+    visible: !authStore.isAuthorized
+  },
+  {
+    label: 'Already have an account? Sign In',
     icon: 'pi pi-sign-in',
-    command: () => { showAuth.value = true },
+    command: () => { router.push('/auth') },
     visible: !authStore.isAuthorized
   }
 ]);
@@ -60,7 +66,7 @@ const handleProfileClick = (event: Event) => {
   if (authStore.isAuthorized) {
     toggleMenu(event);
   } else {
-    showAuth.value = true;
+    toggleMenu(event);
   }
 };
 
@@ -105,17 +111,16 @@ const navigateToCreateArticle = () => {
           class="profile-btn p-button-text"
           @click="handleProfileClick"
           severity="secondary"
-          :title="authStore.isAuthorized ? 'Account Menu' : 'Sign In'"
+          :title="authStore.isAuthorized ? 'Account Menu' : 'Sign Up'"
         />
-        <Menu 
-          ref="menu" 
-          :model="items" 
-          :popup="true" 
+        <Menu
+          ref="menu"
+          :model="items"
+          :popup="true"
           class="header-menu"
         />
       </div>
     </div>
-    <AuthComponent v-if="showAuth" @close="showAuth = false" />
   </header>
 </template>
 
@@ -214,13 +219,15 @@ const navigateToCreateArticle = () => {
   border-radius: 6px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   padding: 0.5rem;
-  min-width: 180px;
+  min-width: 250px;
 }
 
 :deep(.p-menuitem-link) {
-  padding: 0.75rem 1rem !important;
+  padding: 0.85rem 1.25rem !important;
   border-radius: 4px;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
 }
 
 :deep(.p-menuitem-link:hover) {
@@ -230,16 +237,29 @@ const navigateToCreateArticle = () => {
 :deep(.p-menuitem-icon) {
   color: #6a0dad !important;
   margin-right: 0.75rem;
+  font-size: 1rem;
 }
 
 :deep(.p-menuitem-text) {
   color: #333;
-  font-weight: 500;
+  font-weight: 400;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+:deep(.p-menuitem-link[aria-label="Already have an account? Sign In"]) {
+  .p-menuitem-text {
+    font-size: 0.9rem;
+    color: #666;
+  }
+  .p-menuitem-icon {
+    color: #666 !important;
+  }
 }
 
 :deep(.p-menu-separator) {
   border-top: 1px solid #eee;
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
 }
 
 @media (max-width: 768px) {

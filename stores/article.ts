@@ -131,10 +131,21 @@ export const useArticleStore = defineStore('article', () => {
     }
   };
 
+  const deleteArticle = async (id: string) => {
+    try {
+      const { data } = await restClient.delete(`/v1/articles/${id}`);
+      return { data };
+    } catch (error) {
+      console.error('Error deleting article:', error);
+      throw error;
+    }
+  };
+
   return {
     createArticle,
     publishArticle,
     unpublishArticle,
     getCategories,
+    deleteArticle,
   };
 });

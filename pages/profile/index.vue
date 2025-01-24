@@ -5,10 +5,12 @@ import { useProfile } from '~/stores/profile';
 import { useAuthStore } from '~/stores/auth';
 import { restClient } from '~/openapi/rest-client';
 import { useReadingTime } from '~/composables/useReadingTime';
+import { useConfirm } from 'primevue/useconfirm';
 
 const profileStore = useProfile();
 const authStore = useAuthStore();
 const toast = useToast();
+const confirm = useConfirm();
 const loading = ref(false);
 const { calculateReadingTime } = useReadingTime();
 
@@ -95,6 +97,31 @@ const handleUpdate = async () => {
     await fetchProfileData();
 
     loading.value = false;
+};
+
+const handleDelete = async (articleId: string) => {
+  confirm.require({
+    message: 'Are you sure you want to delete this article?',
+    header: 'Delete Confirmation',
+    icon: 'pi pi-exclamation-triangle',
+    accept: async () => {
+      try {
+        await restClient.delete(`/v1/articles/${articleId}`);
+        await fetchProfileData(); // Refresh profile data including articles
+        toast.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Article deleted successfully'
+        });
+      } catch (error) {
+        toast.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to delete article'
+        });
+      }
+    }
+  });
 };
 
 onMounted(() => {
@@ -254,6 +281,14 @@ onMounted(() => {
               :key="article.id"
               class="article-card"
             >
+              <div class="article-actions">
+                <Button
+                  icon="pi pi-trash"
+                  class="p-button-rounded p-button-danger p-button-text"
+                  @click.prevent="handleDelete(article.id)"
+                  aria-label="Delete"
+                />
+              </div>
               <NuxtLink :to="`/articles-preview/${article.slug}`">
                 <div class="article-image" v-if="article.image">
                   <img :src="article.image" :alt="article.title">
@@ -385,6 +420,7 @@ onMounted(() => {
   border-radius: 8px;
   overflow: hidden;
   transition: transform 0.2s;
+  position: relative;
 }
 
 .article-card:hover {
@@ -409,12 +445,14 @@ onMounted(() => {
 
 .article-content {
   padding: 1rem;
+  padding-right: 3rem;
 }
 
 .article-content h3 {
   margin: 0 0 0.5rem;
   font-size: 1.2rem;
   color: #333;
+  line-height: 1.4;
 }
 
 .article-content p {
@@ -524,5 +562,24 @@ onMounted(() => {
     padding: 0.75rem !important;
     font-size: 1rem;
   }
+}
+
+.article-actions {
+  position: absolute;
+  top: 1.5rem;
+  right: 1rem;
+  z-index: 1;
+}
+
+.article-actions :deep(.p-button.p-button-text) {
+  padding: 0.5rem;
+  color: #dc3545;
+  background: rgba(255, 255, 255, 0.9);
+  width: 2rem;
+  height: 2rem;
+}
+
+.article-actions :deep(.p-button.p-button-text:hover) {
+  background: rgba(220, 53, 69, 0.1);
 }
 </style>

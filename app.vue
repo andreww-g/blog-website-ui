@@ -3,6 +3,7 @@
     <HeaderDesktop />
     <main class="main-container">
       <Toast />
+      <ConfirmDialog />
       <NuxtPage />
     </main>
   </div>

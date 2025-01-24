@@ -76,6 +76,26 @@ export const useAuthStore = defineStore('auth', () => {
            !isTokenExpired(refreshToken.value);
   });
 
+  const login = async (credentials: { email: string; password: string }) => {
+    try {
+      const { data, error } = await restClient.post('/v1/auth/login', {
+        body: credentials,
+        auth: false,
+      });
+
+      if (error) throw error;
+
+      if (data?.data) {
+        setTokens(data.data);
+      }
+
+      return { data: data?.data, error: null };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { data: null, error };
+    }
+  };
+
   if (import.meta.client) {
     initializeTokens();
   }
@@ -89,5 +109,6 @@ export const useAuthStore = defineStore('auth', () => {
     setTokens,
     getAccessToken,
     initializeTokens,
+    login,
   };
 });
