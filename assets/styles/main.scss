@@ -1,0 +1,66 @@
+:root {
+  --primary-purple: #6a0dad;
+  --secondary-purple: #4b0082;
+  --light-purple: #8b6b9f;
+  --white: #ffffff;
+  --error-red: #ff4444;
+  --disabled-bg: #f5f5f5;
+  --border-color: #ddd;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  background-color: #f8f8f8;
+}
+
+.p-toast {
+  z-index: 9999;
+}
+
+// Common button styles
+.btn-primary {
+  background-color: var(--primary-purple);
+  color: var(--white);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: var(--secondary-purple);
+  }
+
+  &:disabled {
+    background-color: var(--light-purple);
+    cursor: not-allowed;
+  }
+}
+
+// Form styles
+.form-control {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 0.5rem;
+
+  &:disabled {
+    background: var(--disabled-bg);
+    cursor: not-allowed;
+  }
+}
+
+.error-message {
+  color: var(--error-red);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+} 
